@@ -1,0 +1,6 @@
+{
+  "name": "Project 2 : Bot Template",
+  "description": "A LINE bot to make your chatroom more funny",
+  "repository": "https://github.com/quts/FunnyChatGroup",
+  "keywords": ["python", "LINE"]
+}
