@@ -33,8 +33,9 @@ Hopefully, you do not need to write a script but to configure some hidden key by
 	- ![Set variables](doc/img/deploy_step02.png)
 
 ## Database columns
+To Be Edit. Or, you could read code directly to find it out.    
 
 ## Hidden Keys
-- **DATABASE_BASE_URL**
-- **YOUR_NAME_OF_THE_BOT**
-- **WHITE_LIST**
+- **DATABASE_PAGE_RANDOM_PICKED** : When match randon pick keyword "抽", chatbot will pick data from this page.
+- **YOUR_NAME_OF_THE_BOT** : The keywords shows in Help message and return "有人在找<YOUR_NAME_OF_THE_BOT>嗎？" when it be mentioned.
+- **WHITE_LIST** : Lock the feature "pick" for white listed group only, split by "," for groups into array.
