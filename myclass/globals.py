@@ -13,7 +13,7 @@ class GLOBALS:
 
 class MESSAGE:
     WHAT_CAN_I_DO = u"你好我是%s\n"%(GLOBALS.YOUR_NAME_OF_THE_BOT) + \
-                    u"輸入[抽]我會抽籤給你看\n" + \
+                    u"輸入[抽]或是[pick]我會抽籤給你看\n" + \
                     u"輸入[ok,bot]我會告訴你我會什麼\n"
     HELLO_WORLD   = u"Hello World 歡迎光臨"
     LUCKY_MESSAGE = u"哈囉～肥宅～想幹嘛啊！"
