@@ -12,6 +12,9 @@ class firebaseWrapper(object):
         if not self.has_one('/%s/%s'%(self._db,dict_data['type']), '%s'%dict_data['key']):
             return self.fb.put('/%s/%s'%(self._db,dict_data['type']), '%s'%dict_data['key'], dict_data)
 
+    def update_one(self, dict_data):
+        return self.fb.patch('/%s/%s/%s'%(self._db,dict_data['type'], dict_data['key']), dict_data)
+
     def delete_one(self, path, key):
         return self.fb.delete(path, key)
 
@@ -19,3 +22,6 @@ class firebaseWrapper(object):
         if self.fb.get(path, key):
             return True
         return False
+
+    def get_key(self, key):
+        return self.fb.get(self._db, key)

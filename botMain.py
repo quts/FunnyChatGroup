@@ -50,7 +50,4 @@ def handle_postback(event):
     requestHandler.dispatch()
 
 if __name__ == "__main__":
-    print('--------- Fetching global setting from server ---------')
-    session['en_us'] = ['Cf9773c3046534eff631e320a574006d1','C75a077d28357607dcb0317e836d66103']
-    print('-------------------------------------------------------')
     app.run()
