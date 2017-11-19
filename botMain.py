@@ -1,6 +1,6 @@
 from myclass.globals import GLOBALS
-from myclass.requestHdlr import requestHdlr
-from flask import Flask, request, abort
+from myclass.requestHdlr import requestHdlr, postbackHdlr
+from flask import Flask, request, abort, session
 
 from linebot import (
     LineBotApi, WebhookHandler
@@ -9,7 +9,7 @@ from linebot.exceptions import (
     InvalidSignatureError
 )
 from linebot.models import (
-    MessageEvent, TextMessage, 
+    MessageEvent, TextMessage, PostbackEvent,
 )
 
 app          = Flask(__name__)
@@ -35,17 +35,18 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    print('[MESSAGE] Dispatch event [%s] received at [%s] with token [%s]'%(event.message.type, event.timestamp, event.reply_token))
     requestHandler = requestHdlr(event, handler, line_bot_api)
-    # Do filter and logger
-    if event.source.type == 'group':
-        print( 'Get message from group %s.'%(event.source.group_id) )
-        if event.source.group_id in GLOBALS.WHITE_LIST:
-            requestHandler.setWhiteList(True)
-    elif event.source.type == 'room':
-        print( 'Get message from room %s.'%(event.source.room_id) )
-    elif event.source.type == 'user':
-        print( 'Get message from user %s.'%(event.source.user_id) )    
+    if event.source.type == 'group' and event.source.group_id in GLOBALS.WHITE_LIST:
+        requestHandler.setWhiteList(True)
+    requestHandler.dispatch()
 
+@handler.add(PostbackEvent)
+def handle_postback(event):
+    print('[POSTBACK] Dispatch [%s] received at [%s] with token [%s]'%(event.postback.data, event.timestamp, event.reply_token))
+    requestHandler = postbackHdlr(event, handler, line_bot_api)
+    if event.source.type == 'group' and event.source.group_id in GLOBALS.WHITE_LIST:
+        requestHandler.setWhiteList(True)
     requestHandler.dispatch()
 
 if __name__ == "__main__":
