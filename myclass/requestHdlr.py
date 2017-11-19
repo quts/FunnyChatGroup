@@ -108,8 +108,8 @@ class requestHdlr(object):
             user_id   = self._event.source.room_id
             user_type = 'room'
         elif self._event.source.type == 'user':
-            user_id   = self._event.source.room_id
-            user_type = 'room'
+            user_id   = self._event.source.user_id
+            user_type = 'user'
 
         if noreply:
             return user_type, user_id
