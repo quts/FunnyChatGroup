@@ -25,6 +25,7 @@ class requestHdlr(object):
         self._fb          = firebaseWrapper(GLOBALS.DATABASE_BASE_URL)
         self._sender_type = self._replySenderInfo(True)[0]
         self._sender_id   = self._replySenderInfo(True)[1]
+        self._timestamp   = self._event.timestamp
 
     def setWhiteList(self, bSwitch):
         self._inlist = bSwitch
@@ -50,11 +51,11 @@ class requestHdlr(object):
                     actions=[
                         PostbackTemplateAction(
                             label=MESSAGE.AGREE,
-                            data='action=%s&value=%s&from=%s'%(CommonError.AGREE_TO_DONATE, str_image_id, self._sender_id)
+                            data='action=%s&value=%s&from=%s&timestamp=%s'%(CommonError.AGREE_TO_DONATE, str_image_id, self._sender_id, self._timestamp)
                         ),
                         PostbackTemplateAction(
                             label=MESSAGE.DISAGREE,
-                            data='action=%s&value=%s&from=%s'%(CommonError.DISAGREE_TO_DONATE, str_image_id, self._sender_id)
+                            data='action=%s&value=%s&from=%s&timestamp=%s'%(CommonError.DISAGREE_TO_DONATE, str_image_id, self._sender_id, self._timestamp)
                         )
                     ]
                 )
