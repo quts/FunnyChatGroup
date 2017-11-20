@@ -1,7 +1,8 @@
-import os, random
+import os, random, requests
 from urllib.parse import parse_qs
 from myclass.firebaseWrapper import firebaseWrapper
 from myclass.globals import GLOBALS, MESSAGE
+from myclass.errorcode import CommonError, MakeError
 from linebot import (
     LineBotApi, WebhookHandler
 )
@@ -9,7 +10,8 @@ from linebot.exceptions import (
     InvalidSignatureError
 )
 from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage, ImageSendMessage, TemplateSendMessage,
+    MessageEvent, TextMessage, ImageMessage,
+    TextSendMessage, ImageSendMessage, TemplateSendMessage,
     ButtonsTemplate,
     PostbackTemplateAction, MessageTemplateAction, URITemplateAction,
 )
@@ -30,6 +32,40 @@ class requestHdlr(object):
     def dispatch(self):
         if self._event.message.type == 'text':
             self.string_command_handler()
+        elif self._event.message.type == 'image':
+            if self._sender_type == 'user':
+                self.image_command_handler()
+    
+    def image_command_handler(self):
+        str_image_id    = self._event.message.id
+        # Reply User request
+        self._line.reply_message(
+            self._event.reply_token,
+            TemplateSendMessage(
+                alt_text=MESSAGE.POST_BACK_ALT,
+                template=ButtonsTemplate(
+                    thumbnail_image_url='https://example.com/image.jpg',
+                    title='Press any button to response',
+                    text=MESSAGE.DONATE_IMAGE,
+                    actions=[
+                        PostbackTemplateAction(
+                            label=MESSAGE.AGREE,
+                            data='action=%s&value=%s&from=%s'%(CommonError.AGREE_TO_DONATE, str_image_id, self._sender_id)
+                        ),
+                        PostbackTemplateAction(
+                            label=MESSAGE.DISAGREE,
+                            data='action=%s&value=%s&from=%s'%(CommonError.DISAGREE_TO_DONATE, str_image_id, self._sender_id)
+                        )
+                    ]
+                )
+            )
+        )
+
+        # retrieve image from line server
+        message_content = self._line.get_message_content(str_image_id)
+        for chunk in message_content.iter_content():
+            print(chunk)
+        
 
     def string_command_handler(self):
         if GLOBALS.YOUR_NAME_OF_THE_BOT in self._event.message.text:

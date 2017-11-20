@@ -9,7 +9,8 @@ from linebot.exceptions import (
     InvalidSignatureError
 )
 from linebot.models import (
-    MessageEvent, TextMessage, PostbackEvent,
+    MessageEvent, PostbackEvent,
+    ImageMessage, TextMessage, 
 )
 
 app          = Flask(__name__)
@@ -33,7 +34,7 @@ def callback():
 
     return 'OK'
 
-@handler.add(MessageEvent, message=TextMessage)
+@handler.add(MessageEvent)
 def handle_message(event):
     print('[MESSAGE] Dispatch event [%s] received at [%s] with token [%s]'%(event.message.type, event.timestamp, event.reply_token))
     requestHandler = requestHdlr(event, handler, line_bot_api)
