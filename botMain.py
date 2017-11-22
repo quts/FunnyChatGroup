@@ -50,5 +50,9 @@ def handle_postback(event):
         requestHandler.setWhiteList(True)
     requestHandler.dispatch()
 
+@handler.default()
+def default(event):
+    print('Drop event [%s] received at [%s] with token [%s]'%(event.type, event.timestamp, event.reply_token))
+
 if __name__ == "__main__":
     app.run()
