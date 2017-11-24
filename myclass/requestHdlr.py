@@ -1,15 +1,18 @@
-import os, random
+import os, random, requests
 from urllib.parse import parse_qs
 from myclass.firebaseWrapper import firebaseWrapper
 from myclass.globals import GLOBALS, MESSAGE
+from myclass.errorcode import CommonError, MakeError
+from myclass.GooglePlaceWebAPIWrapper import GooglePlaceWebAPIWrapper,GoogleStaticMapsAPIWrapper
 from linebot import (
     LineBotApi, WebhookHandler
 )
 from linebot.exceptions import (
-    InvalidSignatureError
+    InvalidSignatureError, LineBotApiError
 )
 from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage, ImageSendMessage, TemplateSendMessage,
+    MessageEvent, TextMessage, ImageMessage, LocationMessage,
+    TextSendMessage, ImageSendMessage, TemplateSendMessage,
     ButtonsTemplate,
     PostbackTemplateAction, MessageTemplateAction, URITemplateAction,
 )
@@ -23,6 +26,9 @@ class requestHdlr(object):
         self._fb          = firebaseWrapper(GLOBALS.DATABASE_BASE_URL)
         self._sender_type = self._replySenderInfo(True)[0]
         self._sender_id   = self._replySenderInfo(True)[1]
+        self._timestamp   = self._event.timestamp
+
+        random.seed()
 
     def setWhiteList(self, bSwitch):
         self._inlist = bSwitch
@@ -30,6 +36,81 @@ class requestHdlr(object):
     def dispatch(self):
         if self._event.message.type == 'text':
             self.string_command_handler()
+        elif self._event.message.type == 'image':
+            if self._sender_type == 'user':
+                self.image_command_handler()
+        elif self._event.message.type == 'location':
+            self.location_command_handler()
+
+    def location_command_handler(self):
+        obj_location = GooglePlaceWebAPIWrapper(GLOBALS.GOOGLE_PLACES_API_W_SVC_KEY)
+        dict_result  = obj_location.get(self._event.message.latitude,self._event.message.longitude)
+
+        while dict_result:
+            luck_place = random.choice(dict_result)
+            dict_result.remove(luck_place)
+            try:
+                the_lat = luck_place['geometry']['location']['lat']
+                the_lng = luck_place['geometry']['location']['lng']
+                the_name= luck_place['name']
+
+                postback_uri                 = 'https://www.google.com.tw/maps/place/%s,%s'%(the_lat, the_lng)
+                postback_thumbnail_image_url = GoogleStaticMapsAPIWrapper(None).get(the_lat, the_lng, the_name, self._event.reply_token)
+                self._line.reply_message(
+                    self._event.reply_token,
+                    TemplateSendMessage(
+                        alt_text=MESSAGE.POST_BACK_ALT,
+                        template=ButtonsTemplate(
+                            thumbnail_image_url=postback_thumbnail_image_url,
+                            title=u'%s'%luck_place['name'],
+                            text=u'%s'%luck_place['vicinity'],
+                            actions=[
+                                URITemplateAction(
+                                    label=MESSAGE.MAP_NAVI_BTN,
+                                    uri=postback_uri
+                                )
+                            ]
+                        )
+                    )
+                )
+
+                self._fb.put_one({'type':'gmap_token', 'key':self._event.reply_token, 'time':self._timestamp})
+
+                break
+            except LineBotApiError as e:
+                print(luck_place)
+                continue
+
+    def image_command_handler(self):
+        str_image_id    = self._event.message.id
+        # Reply User request
+        '''
+        self._line.reply_message(
+            self._event.reply_token,
+            TemplateSendMessage(
+                alt_text=MESSAGE.POST_BACK_ALT,
+                template=ButtonsTemplate(
+                    title=MESSAGE.DONATE_TITLE,
+                    text=MESSAGE.DONATE_IMAGE,
+                    actions=[
+                        PostbackTemplateAction(
+                            label=MESSAGE.AGREE,
+                            data='action=%s&value=%s&from=%s&timestamp=%s'%(CommonError.AGREE_TO_DONATE, str_image_id, self._sender_id, self._timestamp)
+                        ),
+                        PostbackTemplateAction(
+                            label=MESSAGE.DISAGREE,
+                            data='action=%s&value=%s&from=%s&timestamp=%s'%(CommonError.DISAGREE_TO_DONATE, str_image_id, self._sender_id, self._timestamp)
+                        )
+                    ]
+                )
+            )
+        )
+        '''
+        # retrieve image from line server
+        message_content = self._line.get_message_content(str_image_id)
+        for chunk in message_content.iter_content():
+            print(chunk)
+        
 
     def string_command_handler(self):
         if GLOBALS.YOUR_NAME_OF_THE_BOT in self._event.message.text:
@@ -108,8 +189,8 @@ class requestHdlr(object):
             user_id   = self._event.source.room_id
             user_type = 'room'
         elif self._event.source.type == 'user':
-            user_id   = self._event.source.room_id
-            user_type = 'room'
+            user_id   = self._event.source.user_id
+            user_type = 'user'
 
         if noreply:
             return user_type, user_id

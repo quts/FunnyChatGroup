@@ -4,18 +4,22 @@ class MakeError(Exception):
         self.msg  = msg
 
     def get_code(self):
-    	return self.code
+        return self.code
 
     def get_msg(self):
-    	return self.msg
+        return self.msg
 
     def __str__(self):
         return repr(self.code)
 
 class CommonError:
-	SUCCESS             = 0x2
-	ERROR               = 0x1
+    SUCCESS             = 0x2
+    ERROR               = 0x1
 
-	SETTING_ERROR       = 0x1
-	NO_HOST_OR_NO_BOARD = MakeError( ERROR, SETTING_ERROR, 0x1, 'Host and board name are must be set' )
-	NO_EXTENSION_IN_ENV = MakeError( ERROR, SETTING_ERROR, 0x2, 'Have to set environment variable for interest extesion' )
+    SETTING_ERROR       = 0x1
+    NO_HOST_OR_NO_BOARD = MakeError( ERROR, SETTING_ERROR, 0x1, 'Host and board name are must be set' )
+    NO_EXTENSION_IN_ENV = MakeError( ERROR, SETTING_ERROR, 0x2, 'Have to set environment variable for interest extesion' )
+
+    POST_BACK_IMAGE     = 0x2
+    AGREE_TO_DONATE     = MakeError( SUCCESS, POST_BACK_IMAGE, 0x1, 'User Agree To Donate The Image' )
+    DISAGREE_TO_DONATE  = MakeError( SUCCESS, POST_BACK_IMAGE, 0x2, 'User Disagree To Donate The Image' )
