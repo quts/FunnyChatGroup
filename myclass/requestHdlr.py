@@ -84,6 +84,7 @@ class requestHdlr(object):
     def image_command_handler(self):
         str_image_id    = self._event.message.id
         # Reply User request
+        '''
         self._line.reply_message(
             self._event.reply_token,
             TemplateSendMessage(
@@ -104,7 +105,7 @@ class requestHdlr(object):
                 )
             )
         )
-
+        '''
         # retrieve image from line server
         message_content = self._line.get_message_content(str_image_id)
         for chunk in message_content.iter_content():
