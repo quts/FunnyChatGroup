@@ -26,12 +26,13 @@ class GooglePlaceWebAPIWrapper(object):
 
 class GoogleStaticMapsAPIWrapper(object):
 
-    def __init__(self, key):
-        self._key = key
+    def __init__(self, key = None, url = None):
+        self._key      = key
+        self._base_url = url
 
     def get(self,latitude,longitude,place_name, token):
 #        url = 'https://maps.googleapis.com/maps/api/staticmap'
-        url = 'https://s27d0417801708103efc682eceb8a9.herokuapp.com/googlemap'
+        url = self._base_url
         params = {
             'center'   : '%s,%s'%(latitude,longitude),
             'zoom'     : 15,

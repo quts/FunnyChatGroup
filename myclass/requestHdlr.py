@@ -1,4 +1,5 @@
 import os, random, requests
+from flask import request as flask_request
 from urllib.parse import parse_qs
 from myclass.firebaseWrapper import firebaseWrapper
 from myclass.globals import GLOBALS, MESSAGE
@@ -55,7 +56,10 @@ class requestHdlr(object):
                 the_name= luck_place['name']
 
                 postback_uri                 = 'https://www.google.com.tw/maps/place/%s,%s'%(the_lat, the_lng)
-                postback_thumbnail_image_url = GoogleStaticMapsAPIWrapper(None).get(the_lat, the_lng, the_name, self._event.reply_token)
+                print('--------------------')
+                print(flask_request.base_url.replace('callback','googlemap'))
+                print('--------------------')
+                postback_thumbnail_image_url = GoogleStaticMapsAPIWrapper(url=flask_request.base_url.replace('callback','googlemap')).get(the_lat, the_lng, the_name, self._event.reply_token)
                 self._line.reply_message(
                     self._event.reply_token,
                     TemplateSendMessage(
