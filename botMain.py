@@ -1,6 +1,9 @@
+import base64,requests
+from io import BytesIO
+from myclass.firebaseWrapper import firebaseWrapper
 from myclass.globals import GLOBALS
 from myclass.requestHdlr import requestHdlr, postbackHdlr
-from flask import Flask, request, abort, session
+from flask import Flask, request, abort, session, send_file
 
 from linebot import (
     LineBotApi, WebhookHandler
@@ -33,6 +36,34 @@ def callback():
         abort(400)
 
     return 'OK'
+
+@app.route("/googlemap")
+def send_image():
+    center     = request.args.get('center')
+    markers    = request.args.get('markers')
+
+    fb         = firebaseWrapper(GLOBALS.DATABASE_BASE_URL)
+    token      = request.args.get('token')
+
+    if fb.has_one('funnyBot/gmap_token',token):
+        fb.delete_one('funnyBot/gmap_token',token)
+    else:
+        return 'Page not found'
+
+    url = 'https://maps.googleapis.com/maps/api/staticmap'
+    params = {
+        'center'   : center,
+        'zoom'     : 15,
+        'size'     : '300x316',
+        'language' : 'zh-tw',
+        'markers'  : markers
+    }
+    obj_page = requests.get(url, params=params)
+    with open('%s.png'%token, 'wb') as f:
+        for chunk in obj_page:
+            f.write(chunk)
+
+    return send_file('%s.png'%token, mimetype='image/png')
 
 @handler.add(MessageEvent)
 def handle_message(event):

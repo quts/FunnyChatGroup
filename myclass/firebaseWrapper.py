@@ -25,3 +25,4 @@ class firebaseWrapper(object):
 
     def get_key(self, key):
         return self.fb.get(self._db, key)
+
