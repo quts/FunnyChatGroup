@@ -1,5 +1,5 @@
 import os, random, requests, base64, time, flask
-from urllib.parse import parse_qs
+from urllib.parse import urlencode, quote_plus
 from myclass.firebaseWrapper import firebaseWrapper
 from myclass.globals import GLOBALS, MESSAGE
 from myclass.errorcode import CommonError, MakeError
@@ -13,7 +13,8 @@ from linebot.exceptions import (
 from linebot.models import (
     MessageEvent, TextMessage, ImageMessage, LocationMessage,
     TextSendMessage, ImageSendMessage, TemplateSendMessage,
-    ButtonsTemplate,
+    ButtonsTemplate, 
+    CarouselTemplate, CarouselColumn,
     PostbackTemplateAction, MessageTemplateAction, URITemplateAction,
 )
 
@@ -49,47 +50,67 @@ class requestHdlr(object):
         obj_location = GooglePlaceWebAPIWrapper(GLOBALS.GOOGLE_PLACES_API_W_SVC_KEY)
         dict_result  = obj_location.get(self._event.message.latitude,self._event.message.longitude)
 
+        lst_carousel_column     = []
+        lst_db_record_requests  = []
         while dict_result:
             luck_place = random.choice(dict_result)
             dict_result.remove(luck_place)
-            count = 0
             try:
                 the_lat = luck_place['geometry']['location']['lat']
                 the_lng = luck_place['geometry']['location']['lng']
                 the_name= luck_place['name']
+                the_addr= luck_place['vicinity']
 
-                postback_uri                 = 'https://www.google.com.tw/maps/place/%s,%s'%(the_lat, the_lng)
+                navigation_uri               = 'https://www.google.com.tw/maps/place/%s,%s'%(the_lat, the_lng)
                 postback_thumbnail_image_url = GoogleStaticMapsAPIWrapper(url=flask.request.base_url.replace('callback','googlemap')).get(the_lat, the_lng, the_name, self._event.reply_token)
-                self._line.reply_message(
-                    self._event.reply_token,
-                    TemplateSendMessage(
-                        alt_text=MESSAGE.POST_BACK_ALT,
-                        template=ButtonsTemplate(
+
+                the_search        = ' '.join([the_addr, the_name])
+                params_string     = urlencode({'q':the_search}, quote_via=quote_plus)
+                google_for_it_uri = '?'.join(['https://www.google.com.tw/search', params_string])
+
+                objCarouselColumn = CarouselColumn(
                             thumbnail_image_url=postback_thumbnail_image_url,
-                            title=u'%s'%luck_place['name'],
-                            text=u'%s'%luck_place['vicinity'],
+                            title=u'%s'%the_name,
+                            text=u'%s'%the_addr,
                             actions=[
                                 URITemplateAction(
                                     label=MESSAGE.MAP_NAVI_BTN,
-                                    uri=postback_uri
+                                    uri=navigation_uri
+                                ),
+                                URITemplateAction(
+                                    label=MESSAGE.MAP_NAVI_SRCH,
+                                    uri=google_for_it_uri
                                 )
                             ]
                         )
-                    )
-                )
 
-                count = count + 1
-                self._fb.update_one({'type':'gmap_token', 
-                                     'key':self._event.reply_token, 
-                                     'time':self._timestamp, 
-                                     'requests': [{ 'id':count,
-                                                   'center':'%s,%s'%(the_lat, the_lng), 
-                                                   'name':the_name }]})
-                
-                break
+                lst_carousel_column.append(objCarouselColumn)
+                lst_db_record_requests.append({ 'id'     : len(lst_carousel_column),
+                                                'center' : '%s,%s'%(the_lat, the_lng), 
+                                                'name'   : the_name })
+
+                if len(lst_carousel_column) > 2:
+                    break
             except LineBotApiError as e:
                 app.logger.error(luck_place)
                 continue
+
+        if len(lst_carousel_column) > 0:
+            image_carousel_template_message = TemplateSendMessage(
+                alt_text=MESSAGE.POST_BACK_ALT,
+                template=CarouselTemplate(
+                    columns=lst_carousel_column
+                )
+            )   
+
+            self._line.reply_message( self._event.reply_token, image_carousel_template_message )
+            self._fb.update_one({'type':'gmap_token', 
+                                 'key':self._event.reply_token, 
+                                 'time':self._timestamp, 
+                                 'requests': lst_db_record_requests})
+        else: 
+            self._replyText(CommonError.NO_AVALIABLE_DATA.get_msg())
+
         app.logger.info('Leave location handler')
 
     def image_command_handler(self):
