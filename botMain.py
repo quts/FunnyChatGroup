@@ -1,4 +1,4 @@
-import flask, base64,requests, logging, sys
+import flask,requests, logging, sys
 
 from myclass.firebaseWrapper import firebaseWrapper
 from myclass.globals import GLOBALS
@@ -46,6 +46,7 @@ def handle_message(event):
     if event.source.type == 'group' and event.source.group_id in GLOBALS.WHITE_LIST:
         requestHandler.setWhiteList(True)
     requestHandler.dispatch()
+    app.logger.info('<<<')
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
@@ -54,14 +55,16 @@ def handle_postback(event):
     if event.source.type == 'group' and event.source.group_id in GLOBALS.WHITE_LIST:
         requestHandler.setWhiteList(True)
     requestHandler.dispatch()
+    app.logger.info('<<<')
 
 @handler.default()
 def default(event):
-    app.logger.info('Drop event [%s] received at [%s] with token [%s]'%(event.type, event.timestamp, event.reply_token))
+    app.logger.info('Drop event [%s] received at [%s] with token [%s] >>>'%(event.type, event.timestamp, event.reply_token))
+    app.logger.info('<<<')
 
 @app.route("/")
 def helloworld():
-    return 'Hello World'
+    return 'Hello World!!'
 
 
 @app.route("/googlemap")
@@ -72,25 +75,31 @@ def send_image():
     fb         = firebaseWrapper(GLOBALS.DATABASE_BASE_URL)
     token      = flask.request.args.get('token')
 
-    if fb.has_one('funnyBot/gmap_token',token):
-        fb.delete_one('funnyBot/gmap_token',token)
-    else:
-        flask.abort(404)
+    fb.set_db(GLOBALS.DATABASE_BASE_NAME)
 
-    url = 'https://maps.googleapis.com/maps/api/staticmap'
-    params = {
-        'center'   : center,
-        'zoom'     : 15,
-        'size'     : '300x316',
-        'language' : 'zh-tw',
-        'markers'  : markers
-    }
-    obj_page = flask.requests.get(url, params=params)
-    with open('%s.png'%token, 'wb') as f:
-        for chunk in obj_page:
-            f.write(chunk)
+    if fb.has_one('gmap_token',token):
+        data = fb.get_key('gmap_token/%s'%token)
+        print(data)
+        for item in data['request']:
+            if '%s,%s'%(item['lat'],item['lng']) == center and markers == item['name']:
+                app.logger.debug('Requested item exists!!')
+                url = 'https://maps.googleapis.com/maps/api/staticmap'
+                params = {
+                    'center'   : center,
+                    'zoom'     : 15,
+                    'size'     : '300x316',
+                    'language' : 'zh-tw',
+                    'markers'  : markers
+                }
+                obj_page = flask.requests.get(url, params=params)
+                with open('%s.png'%token, 'wb') as f:
+                    for chunk in obj_page:
+                        f.write(chunk)
 
-    return flask.send_file('%s.png'%token, mimetype='image/png')
+                return flask.send_file('%s.png'%token, mimetype='image/png')
+
+    app.logger.info('Requested item [%s] not exists in [%s] from [%s]'%(center,token,flask.request.remote_addr))
+    return 'Have a nice day'
 
 if __name__ == "__main__":
     app.run()

@@ -1,4 +1,4 @@
-import os, random, requests
+import os, random, requests, base64, time
 from flask import request as flask_request
 from urllib.parse import parse_qs
 from myclass.firebaseWrapper import firebaseWrapper
@@ -29,6 +29,7 @@ class requestHdlr(object):
         self._sender_id   = self._replySenderInfo(True)[1]
         self._timestamp   = self._event.timestamp
 
+        self._fb.set_db(GLOBALS.DATABASE_BASE_NAME)
         random.seed()
 
     def setWhiteList(self, bSwitch):
@@ -50,15 +51,13 @@ class requestHdlr(object):
         while dict_result:
             luck_place = random.choice(dict_result)
             dict_result.remove(luck_place)
+            count = 0
             try:
                 the_lat = luck_place['geometry']['location']['lat']
                 the_lng = luck_place['geometry']['location']['lng']
                 the_name= luck_place['name']
 
                 postback_uri                 = 'https://www.google.com.tw/maps/place/%s,%s'%(the_lat, the_lng)
-                print('--------------------')
-                print(flask_request.base_url.replace('callback','googlemap'))
-                print('--------------------')
                 postback_thumbnail_image_url = GoogleStaticMapsAPIWrapper(url=flask_request.base_url.replace('callback','googlemap')).get(the_lat, the_lng, the_name, self._event.reply_token)
                 self._line.reply_message(
                     self._event.reply_token,
@@ -78,8 +77,15 @@ class requestHdlr(object):
                     )
                 )
 
-                self._fb.put_one({'type':'gmap_token', 'key':self._event.reply_token, 'time':self._timestamp})
-
+                count = count + 1
+                self._fb.update_one({'type':'gmap_token', 
+                                     'key':self._event.reply_token, 
+                                     'time':self._timestamp, 
+                                     'requests': { 'id':count,
+                                                   'lat':the_lat, 
+                                                   'lng':the_lng, 
+                                                   'name':the_name }})
+                
                 break
             except LineBotApiError as e:
                 print(luck_place)
