@@ -1,8 +1,9 @@
-import flask,requests, logging, sys
+import flask, requests, logging, sys
 
 from myclass.firebaseWrapper import firebaseWrapper
 from myclass.globals import GLOBALS
 from myclass.requestHdlr import requestHdlr, postbackHdlr
+from myclass.errorcode import CommonError
 
 from linebot import (
     LineBotApi, WebhookHandler
@@ -24,12 +25,16 @@ handler      = WebhookHandler(GLOBALS.YOUR_CHANNEL_SECRET)
 
 @app.route("/callback", methods=['POST'])
 def callback():
+    '''
+    Main function of the chatbot which process callback from line server
+    '''
+
     # get X-Line-Signature header value
     signature = flask.request.headers['X-Line-Signature']
 
     # get request body as text
     body = flask.request.get_data(as_text=True)
-    app.logger.info(body)
+    app.logger.debug(body)
 
     # handle webhook body
     try:
@@ -39,18 +44,24 @@ def callback():
 
     return 'OK'
 
-@handler.add(MessageEvent)
+@handler.add(MessageEvent) 
 def handle_message(event):
-    app.logger.info('Dispatch event [%s] received at [%s] with token [%s] >>>'%(event.message.type, event.timestamp, event.reply_token))
+    '''
+    Message event hander
+    '''
+    app.logger.info('>>> Dispatch [%s] event [%s] received at [%s] with token [%s]'%(event.type, event.message.type, event.timestamp, event.reply_token))
     requestHandler = requestHdlr(event, handler, line_bot_api)
     if event.source.type == 'group' and event.source.group_id in GLOBALS.WHITE_LIST:
         requestHandler.setWhiteList(True)
     requestHandler.dispatch()
     app.logger.info('<<<')
 
-@handler.add(PostbackEvent)
+@handler.add(PostbackEvent) 
 def handle_postback(event):
-    app.logger.info('Dispatch [%s] received at [%s] with token [%s] >>>'%(event.postback.data, event.timestamp, event.reply_token))
+    '''
+    postback event hander
+    '''
+    app.logger.info('>>> Dispatch [%s] event [%s] received at [%s] with token [%s]'%(event.type, event.postback.data, event.timestamp, event.reply_token))
     requestHandler = postbackHdlr(event, handler, line_bot_api)
     if event.source.type == 'group' and event.source.group_id in GLOBALS.WHITE_LIST:
         requestHandler.setWhiteList(True)
@@ -58,17 +69,28 @@ def handle_postback(event):
     app.logger.info('<<<')
 
 @handler.default()
-def default(event):
-    app.logger.info('Drop event [%s] received at [%s] with token [%s] >>>'%(event.type, event.timestamp, event.reply_token))
+def default(event): 
+    '''
+    drop non-interest event hander
+    '''
+    app.logger.info('>>> Drop event [%s] received at [%s] with token [%s]'%(event.type, event.timestamp, event.reply_token))
     app.logger.info('<<<')
 
-@app.route("/")
+@app.route("/") # drop non-interest event hander
 def helloworld():
-    return 'Hello World!!'
+    return CommonError.PAGE_NOT_FOUND.get_msg()
 
 
 @app.route("/googlemap")
 def send_image():
+    '''
+    Handle request come from http/https directly.
+    Will verify if requested data exists in database inorder to avoid attack
+    User who want to get google map image via this function should call location event first
+    Location event handler will insert data to database
+
+    Note : Not to delete data from database immediatly to avoid image not found issue in chatroom/chatgroup
+    '''
     center     = flask.request.args.get('center')
     markers    = flask.request.args.get('markers')
 
@@ -79,10 +101,9 @@ def send_image():
 
     if fb.has_one('gmap_token',token):
         data = fb.get_key('gmap_token/%s'%token)
-        print(data)
-        for item in data['request']:
-            if '%s,%s'%(item['lat'],item['lng']) == center and markers == item['name']:
-                app.logger.debug('Requested item exists!!')
+        for item in data['requests']:
+            if item['center'] == center and item['name'] in markers:
+                app.logger.debug('>>> Requested item [%s] found in [%s] from [%s]'%(center,token,flask.request.remote_addr))
                 url = 'https://maps.googleapis.com/maps/api/staticmap'
                 params = {
                     'center'   : center,
@@ -91,17 +112,21 @@ def send_image():
                     'language' : 'zh-tw',
                     'markers'  : markers
                 }
-                obj_page = flask.requests.get(url, params=params)
+                obj_page = requests.get(url, params=params)
                 with open('%s.png'%token, 'wb') as f:
                     for chunk in obj_page:
                         f.write(chunk)
 
                 return flask.send_file('%s.png'%token, mimetype='image/png')
 
-    app.logger.info('Requested item [%s] not exists in [%s] from [%s]'%(center,token,flask.request.remote_addr))
-    return 'Have a nice day'
+    app.logger.info('<<< Requested item [%s] not exists in [%s] from [%s]'%(center,token,flask.request.remote_addr))
+    return CommonError.PAGE_NOT_FOUND.get_msg()
 
 if __name__ == "__main__":
+    '''
+    The main function is call by python directly
+    Usually, heroku will call gunicorn to launch the script, and this part will not be invoked!
+    '''
     app.run()
 
 

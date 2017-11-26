@@ -1,5 +1,4 @@
-import os, random, requests, base64, time
-from flask import request as flask_request
+import os, random, requests, base64, time, flask
 from urllib.parse import parse_qs
 from myclass.firebaseWrapper import firebaseWrapper
 from myclass.globals import GLOBALS, MESSAGE
@@ -17,6 +16,8 @@ from linebot.models import (
     ButtonsTemplate,
     PostbackTemplateAction, MessageTemplateAction, URITemplateAction,
 )
+
+app = flask.current_app
 
 class requestHdlr(object):
     def __init__(self, event, handler, line_bot_api):
@@ -58,7 +59,7 @@ class requestHdlr(object):
                 the_name= luck_place['name']
 
                 postback_uri                 = 'https://www.google.com.tw/maps/place/%s,%s'%(the_lat, the_lng)
-                postback_thumbnail_image_url = GoogleStaticMapsAPIWrapper(url=flask_request.base_url.replace('callback','googlemap')).get(the_lat, the_lng, the_name, self._event.reply_token)
+                postback_thumbnail_image_url = GoogleStaticMapsAPIWrapper(url=flask.request.base_url.replace('callback','googlemap')).get(the_lat, the_lng, the_name, self._event.reply_token)
                 self._line.reply_message(
                     self._event.reply_token,
                     TemplateSendMessage(
@@ -81,15 +82,15 @@ class requestHdlr(object):
                 self._fb.update_one({'type':'gmap_token', 
                                      'key':self._event.reply_token, 
                                      'time':self._timestamp, 
-                                     'requests': { 'id':count,
-                                                   'lat':the_lat, 
-                                                   'lng':the_lng, 
-                                                   'name':the_name }})
+                                     'requests': [{ 'id':count,
+                                                   'center':'%s,%s'%(the_lat, the_lng), 
+                                                   'name':the_name }]})
                 
                 break
             except LineBotApiError as e:
-                print(luck_place)
+                app.logger.error(luck_place)
                 continue
+        app.logger.info('Leave location handler')
 
     def image_command_handler(self):
         str_image_id    = self._event.message.id

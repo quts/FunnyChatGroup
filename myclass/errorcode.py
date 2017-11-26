@@ -23,3 +23,6 @@ class CommonError:
     POST_BACK_IMAGE     = 0x2
     AGREE_TO_DONATE     = MakeError( SUCCESS, POST_BACK_IMAGE, 0x1, 'User Agree To Donate The Image' )
     DISAGREE_TO_DONATE  = MakeError( SUCCESS, POST_BACK_IMAGE, 0x2, 'User Disagree To Donate The Image' )
+
+    HTTP_ERROR          = 0xff
+    PAGE_NOT_FOUND      = MakeError( ERROR, HTTP_ERROR, 0x1, 'Have a nice day :)' )
