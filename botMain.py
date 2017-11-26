@@ -53,7 +53,7 @@ def handle_message(event):
     requestHandler = requestHdlr(event, handler, line_bot_api)
     if event.source.type == 'group' and event.source.group_id in GLOBALS.WHITE_LIST:
         requestHandler.setWhiteList(True)
-    requestHandler.dispatch()
+    requestHandler.handle()
     app.logger.info('<<<')
 
 @handler.add(PostbackEvent) 
@@ -65,7 +65,7 @@ def handle_postback(event):
     requestHandler = postbackHdlr(event, handler, line_bot_api)
     if event.source.type == 'group' and event.source.group_id in GLOBALS.WHITE_LIST:
         requestHandler.setWhiteList(True)
-    requestHandler.dispatch()
+    requestHandler.handle()
     app.logger.info('<<<')
 
 @handler.default()

@@ -37,7 +37,30 @@ class requestHdlr(object):
     def setWhiteList(self, bSwitch):
         self._inlist = bSwitch
 
+    def handle(self):
+        '''
+        Handler flow controller
+        '''
+        self.dispatch()
+        self.posthandler()
+
+    def posthandler(self):
+        '''
+        On demand post-action after finish user request
+        '''
+        ttl = 1000 * 60 * 60 * 24 * 7
+        # clean up out date data in gmap_token db page
+        lst_data = self._fb.get_key('gmap_token')
+        for token in lst_data:
+            if lst_data[token]['time'] + ttl < self._timestamp:
+                path = '/'.join([GLOBALS.DATABASE_BASE_NAME, 'gmap_token'])
+                self._fb.delete_one(path, token)
+                app.logger.info('Cleanup item [%s]'%(token))
+    
     def dispatch(self):
+        '''
+        event dispatcher to sub event types
+        '''
         if self._event.message.type == 'text':
             self.string_command_handler()
         elif self._event.message.type == 'image':
