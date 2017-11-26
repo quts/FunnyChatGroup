@@ -21,7 +21,7 @@ class MESSAGE:
     HELLO_WORLD   = u"Hello World 歡迎光臨"
     LUCKY_MESSAGE = u"哈囉～肥宅～想幹嘛啊！"
 
-    POST_BACK_ALT = u"請在手機上選擇 Select on Mobile"
+    POST_BACK_ALT = u"請在裝置上選擇 Select on your mobile device"
 
     PLEASE_SELECT = u"請選擇 Please Select"
     AGREE         = u"同意 Agree"
@@ -31,3 +31,4 @@ class MESSAGE:
     DONATE_IMAGE  = u"謝謝你與我分享這張照片，請問你擁有這張照片的版權且同意授權%s與其他所有用戶分享嗎？"%(GLOBALS.YOUR_NAME_OF_THE_BOT)
 
     MAP_NAVI_BTN  = u"立刻前往"
+    MAP_NAVI_SRCH = u"看看別人怎麼說"

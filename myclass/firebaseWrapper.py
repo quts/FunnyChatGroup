@@ -3,7 +3,7 @@ from firebase import firebase
 class firebaseWrapper(object):
     def __init__(self, url):
         self.fb     = firebase.FirebaseApplication(url, None)
-        self._db    = 'funnyBot'
+        self._db    = 'default'
 
     def set_db(self, db):
         self._db = db
@@ -19,7 +19,7 @@ class firebaseWrapper(object):
         return self.fb.delete(path, key)
 
     def has_one(self,path,key):
-        if self.fb.get(path, key):
+        if self.fb.get('%s/%s'%(self._db, path), key):
             return True
         return False
 
