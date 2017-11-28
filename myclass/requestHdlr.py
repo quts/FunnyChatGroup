@@ -202,13 +202,17 @@ class requestHdlr(object):
                     )
             )
 
-    def _replyText(self, msg):
+    def _replyText(self, msgs):
+        if not isinstance(msgs, (list, tuple)):
+            msgs = [msgs]
+
+        lst_msg = [TextSendMessage( text=msg ) for msg in msgs]
+
         self._line.reply_message(
                 self._event.reply_token,
-                TextSendMessage(
-                        text=msg
-                    )
+                lst_msg
             )
+
     def _echo_bug(self):
         this_msg = self._event.message.text
         dict_msg = { 'type'     : 'yes_man',
